@@ -1,0 +1,9 @@
+{
+  "name": "all-planet-start",
+  "version": "0.1.0",
+  "title": "All Planet Start",
+  "author": "ameateye",
+  "description": "Multiplayer mod for starting on all 4 planets simultaneously",
+  "factorio_version": "2.0",
+  "dependencies": ["space-age"]
+}
