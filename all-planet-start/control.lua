@@ -22,7 +22,7 @@ script.on_init(function()
     storage.teleport_delay = 10
     storage.selection_locked = false
     
-    Unlock all space locations since this is an all-planet start mod
+    --Unlock all space locations since this is an all-planet start mod
     local force = game.forces.player
     local space_locations = {"nauvis", "vulcanus", "gleba", "fulgora"}
     for _, location in pairs(space_locations) do
