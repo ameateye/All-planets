@@ -96,7 +96,9 @@ utils.set_prerequisites("electric-engine", {"lubrication"})
 -- ============================================================================
 
 -- Medium electric poles available with basic electronics
-utils.add_recipes("electronics", {"medium-electric-pole", "iron-stick"})
+utils.add_recipes("electronics", {"medium-electric-pole", "iron-stick","lightning-collector"})
+utils.set_prerequisites("solar-energy", {"steel-processing", "electronics"})
+utils.set_trigger("solar-energy", {type = "craft-item", item = "electronic-circuit", count = 15})
 utils.remove_recipes("electric-energy-distribution-1", {"medium-electric-pole"})
 
 -- ============================================================================
