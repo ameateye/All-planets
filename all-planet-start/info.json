@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "title": "All Planet Start",
   "author": "ameateye",
-  "description": "Multiplayer mod for starting on all 4 planets simultaneously",
+  "description": "A mod allowing multiplayers to start on multiple planets simulatneusly. Requires player on Fulgora (to unlock steel and batteries) and on Nauvis (to unlock oil) to be playable",
   "factorio_version": "2.0",
   "dependencies": ["space-age"]
 }
