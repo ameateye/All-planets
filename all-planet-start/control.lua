@@ -80,6 +80,11 @@ function handle_player_spawn(player_index)
             autoplace_controls = {},
             cliff_settings = {richness = 0}
         })
+        
+        -- Configure lighting
+        storage.lobby_surface.always_day = true
+        storage.lobby_surface.show_clouds = false
+        
         storage.lobby_surface.request_to_generate_chunks({0, 0}, 3)
         storage.lobby_surface.force_generate_chunk_requests()
     end
@@ -93,6 +98,15 @@ function handle_player_spawn(player_index)
     -- Teleport player to lobby
     local spawn_position = storage.lobby_surface.find_non_colliding_position("character", {0, 0}, 0, 1)
     player.teleport(spawn_position, storage.lobby_surface)
+    
+    -- Chart lobby area to remove fog of war
+    local platform_size = 25
+    local square_size = 20
+    local lobby_area = {
+        left_top = {-(platform_size + square_size), -(platform_size + square_size)},
+        right_bottom = {platform_size + square_size, platform_size + square_size}
+    }
+    player.force.chart(storage.lobby_surface, lobby_area)
     
     -- Clear Nauvis if not visited
     if not storage.nauvis_visited then
@@ -225,6 +239,23 @@ script.on_event(defines.events.on_chunk_generated, function(event)
     surface.set_tiles(tiles)
     surface.daytime = 0.5
     surface.freeze_daytime = true
+end)
+
+-- Maintain lobby visibility (every 10 seconds)
+script.on_nth_tick(600, function(event)
+    if not storage.lobby_surface then return end
+    
+    local platform_size = 25
+    local square_size = 20
+    local lobby_area = {
+        left_top = {-(platform_size + square_size), -(platform_size + square_size)},
+        right_bottom = {platform_size + square_size, platform_size + square_size}
+    }
+    
+    -- Re-chart lobby area for all forces to maintain visibility
+    for _, force in pairs(game.forces) do
+        force.chart(storage.lobby_surface, lobby_area)
+    end
 end)
 
 -- ============================================================================
