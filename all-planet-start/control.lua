@@ -21,6 +21,7 @@ script.on_init(function()
     storage.teleport_timer = nil
     storage.teleport_delay = 10
     storage.selection_locked = false
+    storage.personal_timers = {}
     
     --Unlock all space locations since this is an all-planet start mod
     local force = game.forces.player
@@ -37,6 +38,7 @@ script.on_configuration_changed(function(event)
         storage.teleport_timer = storage.teleport_timer or nil
         storage.teleport_delay = storage.teleport_delay or 10
         storage.selection_locked = storage.selection_locked or false
+        storage.personal_timers = storage.personal_timers or {}
         
         -- Handle existing players
         for _, player in pairs(game.players) do
@@ -300,30 +302,48 @@ end
 function update_player_selection(player, planet)
     if not player or not planet then return end
     
-    if storage.selection_locked then
-        player.print("Planet selection is locked! Teleportation countdown has ended.")
-        return
-    end
-    
     storage.player_selections[player.index] = planet
     player.color = planet_colors[planet]
-    game.print("Player " .. player.name .. " selected " .. planet:gsub("^%l", string.upper) .. "!")
+    
+    if storage.selection_locked then
+        -- Game has started, start personal countdown for late joiner
+        player.print("Game has already started! You selected " .. planet:gsub("^%l", string.upper) .. ". Teleporting in 5 seconds...")
+        start_personal_teleport_timer(player, planet)
+    else
+        game.print("Player " .. player.name .. " selected " .. planet:gsub("^%l", string.upper) .. "!")
+    end
 end
 
 function clear_player_selection(player)
     if not player then return end
     
-    if storage.selection_locked then
-        player.print("Planet selection is locked! Teleportation countdown has ended.")
-        return
-    end
-    
     local current_selection = storage.player_selections[player.index]
     if current_selection then
         storage.player_selections[player.index] = nil
         player.color = {r = 1, g = 1, b = 1}  -- Reset to white
-        game.print("Player " .. player.name .. " deselected their planet.")
+        
+        -- Cancel personal timer if active
+        if storage.personal_timers and storage.personal_timers[player.index] then
+            storage.personal_timers[player.index] = nil
+            player.print("Teleportation cancelled.")
+        end
+        
+        if not storage.selection_locked then
+            game.print("Player " .. player.name .. " deselected their planet.")
+        end
     end
+end
+
+function start_personal_teleport_timer(player, planet)
+    if not storage.personal_timers then
+        storage.personal_timers = {}
+    end
+    
+    storage.personal_timers[player.index] = {
+        end_tick = game.tick + (5 * 60), -- 5 seconds
+        planet = planet,
+        last_announced = nil
+    }
 end
 
 script.on_event(defines.events.on_player_changed_position, function(event)
@@ -365,30 +385,57 @@ function should_announce_time(seconds_left)
 end
 
 script.on_event(defines.events.on_tick, function(event)
-    if not storage.teleport_timer then return end
-    
-    local ticks_left = storage.teleport_timer - game.tick
-    local seconds_left = math.ceil(ticks_left / 60)
-    
-    storage.last_announced_second = storage.last_announced_second or -1
-    
-    -- Announce countdown
-    if ticks_left > 0 and should_announce_time(seconds_left) and seconds_left ~= storage.last_announced_second then
-        storage.last_announced_second = seconds_left
-        if seconds_left > 5 then
-            game.print("Game start in " .. seconds_left .. " seconds...")
-        else
-            game.print("Game start in " .. seconds_left .. "!")
+    -- Handle main countdown timer
+    if storage.teleport_timer then
+        local ticks_left = storage.teleport_timer - game.tick
+        local seconds_left = math.ceil(ticks_left / 60)
+        
+        storage.last_announced_second = storage.last_announced_second or -1
+        
+        -- Announce countdown
+        if ticks_left > 0 and should_announce_time(seconds_left) and seconds_left ~= storage.last_announced_second then
+            storage.last_announced_second = seconds_left
+            if seconds_left > 5 then
+                game.print("Game start in " .. seconds_left .. " seconds...")
+            else
+                game.print("Game start in " .. seconds_left .. "!")
+            end
+        end
+        
+        -- Timer completed
+        if ticks_left <= 0 then
+            storage.teleport_timer = nil
+            storage.selection_locked = true
+            storage.last_announced_second = nil
+            game.print("Game starts")
+            teleport_players_to_planets()
         end
     end
     
-    -- Timer completed
-    if ticks_left <= 0 then
-        storage.teleport_timer = nil
-        storage.selection_locked = true
-        storage.last_announced_second = nil
-        game.print("Game starts")
-        teleport_players_to_planets()
+    -- Handle personal timers for late joiners
+    if storage.personal_timers then
+        for player_index, timer in pairs(storage.personal_timers) do
+            local player = game.get_player(player_index)
+            if player and player.valid then
+                local ticks_left = timer.end_tick - game.tick
+                local seconds_left = math.ceil(ticks_left / 60)
+                
+                -- Announce personal countdown
+                if ticks_left > 0 and seconds_left ~= timer.last_announced and seconds_left <= 5 and seconds_left >= 1 then
+                    timer.last_announced = seconds_left
+                    player.print("Teleporting in " .. seconds_left .. "!")
+                end
+                
+                -- Personal timer completed
+                if ticks_left <= 0 then
+                    teleport_player_to_planet(player, timer.planet)
+                    storage.personal_timers[player_index] = nil
+                end
+            else
+                -- Clean up invalid player
+                storage.personal_timers[player_index] = nil
+            end
+        end
     end
 end)
 
@@ -396,18 +443,23 @@ end)
 -- TELEPORTATION SYSTEM
 -- ============================================================================
 
+function teleport_player_to_planet(player, planet)
+    if planet == "nauvis" then
+        teleport_to_nauvis(player)
+    elseif planet == "vulcanus" then
+        teleport_to_vulcanus(player)
+    elseif planet == "gleba" then
+        teleport_to_gleba(player)
+    elseif planet == "fulgora" then
+        teleport_to_fulgora(player)
+    end
+end
+
 function teleport_players_to_planets()
     for _, player in pairs(game.players) do
         local selected_planet = storage.player_selections[player.index]
-        
-        if selected_planet == "nauvis" then
-            teleport_to_nauvis(player)
-        elseif selected_planet == "vulcanus" then
-            teleport_to_vulcanus(player)
-        elseif selected_planet == "gleba" then
-            teleport_to_gleba(player)
-        elseif selected_planet == "fulgora" then
-            teleport_to_fulgora(player)
+        if selected_planet then
+            teleport_player_to_planet(player, selected_planet)
         end
     end
 end
