@@ -409,6 +409,8 @@ script.on_event(defines.events.on_tick, function(event)
             storage.last_announced_second = nil
             game.print("Game starts")
             teleport_players_to_planets()
+            -- Reset time played to start counting from when players actually start playing
+            game.reset_time_played()
         end
     end
     
