@@ -22,6 +22,7 @@ script.on_init(function()
     storage.teleport_delay = 10
     storage.selection_locked = false
     storage.personal_timers = {}
+    storage.clock_data = {}
     
     --Unlock all space locations since this is an all-planet start mod
     local force = game.forces.player
@@ -39,11 +40,13 @@ script.on_configuration_changed(function(event)
         storage.teleport_delay = storage.teleport_delay or 10
         storage.selection_locked = storage.selection_locked or false
         storage.personal_timers = storage.personal_timers or {}
+        storage.clock_data = storage.clock_data or {}
         
         -- Handle existing players
         for _, player in pairs(game.players) do
             handle_player_spawn(player.index)
             create_start_game_button(player)
+            create_clock(player)
         end
     end
 end)
@@ -66,6 +69,7 @@ script.on_event(defines.events.on_player_joined_game, function(event)
     local player = game.get_player(event.player_index)
     if player then
         create_start_game_button(player)
+        create_clock(player)
     end
 end)
 
@@ -658,5 +662,76 @@ script.on_event(defines.events.on_gui_click, function(event)
         start_teleport_countdown()
         hide_start_game_buttons()
         game.print("Admin " .. player.name .. " has started the game!")
+    end
+end)
+
+-- ============================================================================
+-- CLOCK SYSTEM (Adapted from redRafe's rr-clock)
+-- ============================================================================
+
+local SECONDS = 60
+local MINUTES = 60 * SECONDS
+local HOURS = 60 * MINUTES
+local DAYS = 24 * HOURS
+
+local function format_time(ticks)
+    local floor = math.floor
+    local days = floor(ticks / DAYS)
+    local hours = floor(ticks / HOURS) % 24
+    local minutes = floor(ticks / MINUTES) % 60
+    local seconds = floor(ticks / SECONDS) % 60
+    
+    if days > 0 then
+        return string.format("%dd %02d:%02d:%02d", days, hours, minutes, seconds)
+    else
+        return string.format("%02d:%02d:%02d", hours, minutes, seconds)
+    end
+end
+
+function create_clock(player)
+    if not (player and player.valid) then return end
+    
+    local frame = player.gui.screen.aps_clock
+    if frame then
+        frame.destroy()
+    end
+    
+    -- Create frame using redRafe's styling approach
+    frame = player.gui.screen.add{
+        type = 'frame',
+        name = 'aps_clock',
+        direction = 'horizontal',
+        style = 'quick_bar_slot_window_frame',
+    }
+    
+    -- Set frame properties (adapted from redRafe)
+    frame.style.minimal_width = 100
+    frame.style.minimal_height = 24
+    frame.style.padding = 2
+    frame.location = {10, 10}
+    
+    -- Add time label with redRafe's styling
+    local label = frame.add{
+        type = 'label',
+        name = 'time_label',
+        caption = format_time(game.ticks_played)
+    }
+    label.style.font_color = {r = 255, g = 255, b = 255}
+    label.style.horizontal_align = 'center'
+end
+
+local function update_clock(player)
+    if not (player and player.valid) then return end
+    
+    local frame = player.gui.screen.aps_clock
+    if frame and frame.time_label then
+        frame.time_label.caption = format_time(game.ticks_played)
+    end
+end
+
+-- Update clocks every second
+script.on_nth_tick(60, function(event)
+    for _, player in pairs(game.players) do
+        update_clock(player)
     end
 end)
