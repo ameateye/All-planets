@@ -209,10 +209,14 @@ script.on_event(defines.events.on_chunk_generated, function(event)
     local square_size = 20
     
     local tiles = {}
+    local cancel_area_size = 15  -- Central cancel area
     for x = minx-1, maxx do
         for y = miny-1, maxy do
+            -- Cancel zone (center platform with hazard concrete)
+            if x >= -cancel_area_size/2 and x <= cancel_area_size/2 and y >= -cancel_area_size/2 and y <= cancel_area_size/2 then
+                table.insert(tiles, {name = "refined-hazard-concrete-left", position = {x, y}})
             -- Main platform area
-            if x < platform_size and x > -(platform_size+1) and y < platform_size and y > -(platform_size+1) then
+            elseif x < platform_size and x > -(platform_size+1) and y < platform_size and y > -(platform_size+1) then
                 table.insert(tiles, {name = "space-platform-foundation", position = {x, y}})
             -- Planet terrain squares
             elseif x >= -square_size/2 and x <= square_size/2 and y >= -(platform_size + square_size - 1) and y <= -platform_size then
@@ -272,7 +276,13 @@ local planet_colors = {
 function detect_planet_area(position)
     local platform_size = 25
     local square_size = 20
+    local cancel_area_size = 15  -- Central cancel area
     local x, y = position.x, position.y
+    
+    -- Check cancel area first (center of platform with hazard concrete)
+    if x >= -cancel_area_size/2 and x <= cancel_area_size/2 and y >= -cancel_area_size/2 and y <= cancel_area_size/2 then
+        return "cancel"
+    end
     
     if x >= -square_size/2 and x <= square_size/2 and y >= -(platform_size + square_size - 1) and y <= -platform_size then
         return "nauvis"
@@ -300,17 +310,40 @@ function update_player_selection(player, planet)
     game.print("Player " .. player.name .. " selected " .. planet:gsub("^%l", string.upper) .. "!")
 end
 
+function clear_player_selection(player)
+    if not player then return end
+    
+    if storage.selection_locked then
+        player.print("Planet selection is locked! Teleportation countdown has ended.")
+        return
+    end
+    
+    local current_selection = storage.player_selections[player.index]
+    if current_selection then
+        storage.player_selections[player.index] = nil
+        player.color = {r = 1, g = 1, b = 1}  -- Reset to white
+        game.print("Player " .. player.name .. " deselected their planet.")
+    end
+end
+
 script.on_event(defines.events.on_player_changed_position, function(event)
     local player = game.get_player(event.player_index)
     if not player or not player.surface or player.surface.name ~= "lobby" then
         return
     end
     
-    local planet = detect_planet_area(player.position)
-    if planet then
+    -- Don't trigger planet selection while in map mode
+    if player.render_mode == defines.render_mode.chart or player.render_mode == defines.render_mode.chart_zoomed_in then
+        return
+    end
+    
+    local area = detect_planet_area(player.position)
+    if area == "cancel" then
+        clear_player_selection(player)
+    elseif area then
         local current_selection = storage.player_selections[player.index]
-        if current_selection ~= planet then
-            update_player_selection(player, planet)
+        if current_selection ~= area then
+            update_player_selection(player, area)
         end
     end
 end)
