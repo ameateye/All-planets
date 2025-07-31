@@ -1,6 +1,8 @@
 -- All Planet Start - Core Gameplay
 -- Team selection, countdown timer, and teleportation system
 
+local crash_site = require("crash-site")
+
 -- ============================================================================
 -- PLANET SELECTION SYSTEM
 -- ============================================================================
@@ -199,9 +201,8 @@ local planet_messages = {
 }
 
 function teleport_player_to_planet(player, planet_name)
-    -- Check if planet surface already exists
-    local existing_surface = game.get_surface(planet_name)
-    local is_first_player = (existing_surface == nil)
+    -- Check if this is the first player (special handling for Nauvis)
+    local is_first_player = (planet_name == "nauvis") and not storage.nauvis_first_landing or (game.get_surface(planet_name) == nil)
     
     -- Create planet surface
     local surface = game.planets[planet_name].create_surface()
@@ -212,8 +213,33 @@ function teleport_player_to_planet(player, planet_name)
     
     local spawn_position = surface.find_non_colliding_position("character", {0, 0}, 32, 1) or {0, 0}
     
-    -- Handle equipment based on first player status
+    -- Handle equipment and crash site based on first player status
     if is_first_player then
+        -- Mark Nauvis as having first landing
+        if planet_name == "nauvis" then
+            storage.nauvis_first_landing = true
+        end
+        
+        -- Unlock space location now that surface is created
+        local force = game.forces.player
+        force.unlock_space_location(planet_name)
+        
+        -- Create crash site for first player
+        local crash_position = {spawn_position.x - 5, spawn_position.y - 6}
+        local ship_items = {["firearm-magazine"] = 8} -- Ship items go in crash site, not player inventory
+        local debris_items = {["iron-plate"] = 8} -- Items scattered in wreckage
+        local ship_parts = crash_site.default_ship_parts()
+        
+        crash_site.create_crash_site(surface, crash_position, ship_items, debris_items, ship_parts)
+        
+        -- Chart landing area for initial visibility (15x15 chunks like base game)
+        local chart_radius = 224 -- 7 chunks each side = 15x15 chunks total
+        local chart_area = {
+            left_top = {spawn_position.x - chart_radius, spawn_position.y - chart_radius},
+            right_bottom = {spawn_position.x + chart_radius, spawn_position.y + chart_radius}
+        }
+        player.force.chart(surface, chart_area)
+        
         -- First player (crash survivor): reduced equipment
         player.insert{name = "pistol", count = 1}
         player.insert{name = "burner-mining-drill", count = 1}
@@ -233,9 +259,4 @@ function teleport_player_to_planet(player, planet_name)
     -- Teleport player
     player.teleport(spawn_position, surface)
     player.print(planet_messages[planet_name])
-    
-    -- Legacy compatibility
-    if planet_name == "nauvis" then
-        storage.nauvis_visited = true
-    end
 end

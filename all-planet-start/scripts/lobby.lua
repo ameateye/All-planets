@@ -24,11 +24,21 @@ script.on_init(function()
     storage.personal_timers = {}
     storage.clock_data = {}
     
-    --Unlock all space locations since this is an all-planet start mod
+    -- Track Nauvis first landing (since surface clearing doesn't work for first player detection)
+    storage.nauvis_first_landing = false
+    
+    -- Don't unlock space locations initially - will unlock them when surfaces are created
+    -- This prevents auto-creation of planet surfaces
     local force = game.forces.player
     local space_locations = {"nauvis", "vulcanus", "gleba", "fulgora"}
     for _, location in pairs(space_locations) do
-        force.unlock_space_location(location)
+        force.lock_space_location(location)
+    end
+    
+    -- Clear Nauvis surface if it was automatically created (cannot delete primary surface)
+    local nauvis = game.get_surface("nauvis")
+    if nauvis then
+        nauvis.clear()
     end
 end)
 
@@ -41,6 +51,7 @@ script.on_configuration_changed(function(event)
         storage.selection_locked = storage.selection_locked or false
         storage.personal_timers = storage.personal_timers or {}
         storage.clock_data = storage.clock_data or {}
+        storage.nauvis_first_landing = storage.nauvis_first_landing or false
         
         -- Handle existing players
         for _, player in pairs(game.players) do
@@ -108,13 +119,9 @@ function handle_player_spawn(player_index)
         right_bottom = {platform_size + square_size, platform_size + square_size}
     }
     player.force.chart(storage.lobby_surface, lobby_area)
-    
-    -- Clear Nauvis if not visited
-    if not storage.nauvis_visited then
-        local nauvis = game.get_surface("nauvis")
-        if nauvis then
-            nauvis.clear()
-        end
+    local nauvis = game.get_surface("nauvis")
+    if nauvis then
+        nauvis.clear()
     end
 end
 
