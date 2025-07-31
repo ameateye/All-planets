@@ -81,14 +81,16 @@ function check_and_block_platform_schedule(platform)
     return false
 end
 
--- Check space platform schedules periodically (no direct schedule change event exists)
-script.on_nth_tick(60, function(event) -- Check every second
+-- Global function for control.lua to call
+function check_platform_schedules()
     for _, surface in pairs(game.surfaces) do
         if surface.platform then
             check_and_block_platform_schedule(surface.platform)
         end
     end
-end)
+end
+
+-- Note: Tick handler moved to control.lua to centralize and avoid conflicts
 
 -- Also check when space platform state changes
 script.on_event(defines.events.on_space_platform_changed_state, function(event)
