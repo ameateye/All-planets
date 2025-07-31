@@ -95,6 +95,11 @@ function handle_player_spawn(player_index)
     local spawn_position = storage.lobby_surface.find_non_colliding_position("character", {0, 0}, 0, 1)
     player.teleport(spawn_position, storage.lobby_surface)
     
+    -- Clear player inventory in lobby (should start with nothing)
+    player.get_main_inventory().clear()
+    player.get_inventory(defines.inventory.character_guns).clear()
+    player.get_inventory(defines.inventory.character_ammo).clear()
+    
     -- Chart lobby area to remove fog of war
     local platform_size = 25
     local square_size = 20

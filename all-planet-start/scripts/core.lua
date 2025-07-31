@@ -181,18 +181,6 @@ end)
 -- TELEPORTATION SYSTEM
 -- ============================================================================
 
-function teleport_player_to_planet(player, planet)
-    if planet == "nauvis" then
-        teleport_to_nauvis(player)
-    elseif planet == "vulcanus" then
-        teleport_to_vulcanus(player)
-    elseif planet == "gleba" then
-        teleport_to_gleba(player)
-    elseif planet == "fulgora" then
-        teleport_to_fulgora(player)
-    end
-end
-
 function teleport_players_to_planets()
     for _, player in pairs(game.players) do
         local selected_planet = storage.player_selections[player.index]
@@ -202,48 +190,52 @@ function teleport_players_to_planets()
     end
 end
 
-function teleport_to_nauvis(player)
-    local nauvis = game.get_surface("nauvis")
-    if not nauvis then
-        nauvis = game.create_surface("nauvis")
+-- Planet welcome messages
+local planet_messages = {
+    nauvis = "Welcome to Nauvis! Say hello to the biters!",
+    vulcanus = "Welcome to Vulcanus! Watch out for the lava!",
+    gleba = "Welcome to Gleba! Beware of the spoilage and pentapods!",
+    fulgora = "Welcome to Fulgora! Mind the lightning storms!"
+}
+
+function teleport_player_to_planet(player, planet_name)
+    -- Check if planet surface already exists
+    local existing_surface = game.get_surface(planet_name)
+    local is_first_player = (existing_surface == nil)
+    
+    -- Create planet surface
+    local surface = game.planets[planet_name].create_surface()
+    
+    -- Generate chunks and find spawn position
+    surface.request_to_generate_chunks({0, 0}, 3)
+    surface.force_generate_chunk_requests()
+    
+    local spawn_position = surface.find_non_colliding_position("character", {0, 0}, 32, 1) or {0, 0}
+    
+    -- Handle equipment based on first player status
+    if is_first_player then
+        -- First player (crash survivor): reduced equipment
+        player.insert{name = "pistol", count = 1}
+        player.insert{name = "burner-mining-drill", count = 1}
+        player.insert{name = "stone-furnace", count = 1}
+        player.insert{name = "firearm-magazine", count = 2}
+        player.insert{name = "wood", count = 1}
+    else
+        -- Subsequent players: full standard starting equipment
+        player.insert{name = "iron-plate", count = 8}
+        player.insert{name = "pistol", count = 1}
+        player.insert{name = "firearm-magazine", count = 10}
+        player.insert{name = "burner-mining-drill", count = 1}
+        player.insert{name = "stone-furnace", count = 1}
+        player.insert{name = "wood", count = 1}
     end
     
-    nauvis.request_to_generate_chunks({0, 0}, 3)
-    nauvis.force_generate_chunk_requests()
+    -- Teleport player
+    player.teleport(spawn_position, surface)
+    player.print(planet_messages[planet_name])
     
-    local spawn_position = nauvis.find_non_colliding_position("character", {0, 0}, 32, 1) or {0, 0}
-    player.teleport(spawn_position, nauvis)
-    player.print("Welcome to Nauvis! Say hello to the biters!")
-    
-    storage.nauvis_visited = true
-end
-
-function teleport_to_vulcanus(player)
-    local vulcanus = game.planets["vulcanus"].create_surface()
-    vulcanus.request_to_generate_chunks({0, 0}, 3)
-    vulcanus.force_generate_chunk_requests()
-    
-    local spawn_position = vulcanus.find_non_colliding_position("character", {0, 0}, 32, 1) or {0, 0}
-    player.teleport(spawn_position, vulcanus)
-    player.print("Welcome to Vulcanus! Watch out for the lava!")
-end
-
-function teleport_to_gleba(player)
-    local gleba = game.planets["gleba"].create_surface()
-    gleba.request_to_generate_chunks({0, 0}, 3)
-    gleba.force_generate_chunk_requests()
-    
-    local spawn_position = gleba.find_non_colliding_position("character", {0, 0}, 32, 1) or {0, 0}
-    player.teleport(spawn_position, gleba)
-    player.print("Welcome to Gleba! Beware of the spoilage and pentapods!")
-end
-
-function teleport_to_fulgora(player)
-    local fulgora = game.planets["fulgora"].create_surface()
-    fulgora.request_to_generate_chunks({0, 0}, 3)
-    fulgora.force_generate_chunk_requests()
-    
-    local spawn_position = fulgora.find_non_colliding_position("character", {0, 0}, 32, 1) or {0, 0}
-    player.teleport(spawn_position, fulgora)
-    player.print("Welcome to Fulgora! Mind the lightning storms!")
+    -- Legacy compatibility
+    if planet_name == "nauvis" then
+        storage.nauvis_visited = true
+    end
 end
