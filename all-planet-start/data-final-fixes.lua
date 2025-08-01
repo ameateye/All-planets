@@ -15,24 +15,9 @@ local planet_discoveries = {
     "planet-discovery-fulgora"
 }
 
--- Remove planet discovery prerequisites from ALL technologies except science packs
-local science_pack_exclusions = {
-    "metallurgic-science-pack",
-    "electromagnetic-science-pack", 
-    "agricultural-science-pack"
-}
-
+-- Remove planet discovery prerequisites from ALL technologies
 for _, tech in pairs(data.raw.technology) do
-    -- Skip science pack technologies
-    local is_science_pack = false
-    for _, exclusion in pairs(science_pack_exclusions) do
-        if tech.name == exclusion then
-            is_science_pack = true
-            break
-        end
-    end
-    
-    if tech.prerequisites and not is_science_pack then
+    if tech.prerequisites then
         for i = #tech.prerequisites, 1, -1 do
             for _, planet_discovery in pairs(planet_discoveries) do
                 if tech.prerequisites[i] == planet_discovery then
@@ -43,3 +28,13 @@ for _, tech in pairs(data.raw.technology) do
         end
     end
 end
+
+-- ============================================================================
+-- PLANET SCIENCE PACK DEPENDENCIES
+-- ============================================================================
+
+-- Create planet discovery requirements for planet science packs
+-- This maintains progression: players can access planets but science requires discovery
+utils.add_prerequisites("metallurgic-science-pack", {"planet-discovery-vulcanus"})
+utils.add_prerequisites("electromagnetic-science-pack", {"planet-discovery-fulgora"})
+utils.add_prerequisites("agricultural-science-pack", {"planet-discovery-gleba"})
