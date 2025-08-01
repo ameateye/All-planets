@@ -89,121 +89,63 @@ end)
 -- LOBBY TERRAIN GENERATION
 -- ============================================================================
 
+function get_lobby_tile(x, y)
+    -- Cancel zone (center platform with hazard concrete)
+    if x >= -CANCEL_AREA_SIZE/2 and x <= CANCEL_AREA_SIZE/2 and y >= -CANCEL_AREA_SIZE/2 and y <= CANCEL_AREA_SIZE/2 then
+        return "refined-hazard-concrete-left"
+    -- Main platform area
+    elseif x < PLATFORM_SIZE and x > -(PLATFORM_SIZE+1) and y < PLATFORM_SIZE and y > -(PLATFORM_SIZE+1) then
+        return "space-platform-foundation"
+    -- Nauvis terrain square (top, blue)
+    elseif x >= -SQUARE_SIZE/2 and x <= SQUARE_SIZE/2 and y >= -(PLATFORM_SIZE + SQUARE_SIZE - 1) and y <= -PLATFORM_SIZE then
+        return "grass-1"
+    -- Gleba terrain square (right, green)
+    elseif x >= PLATFORM_SIZE and x <= PLATFORM_SIZE + SQUARE_SIZE - 1 and y >= -SQUARE_SIZE/2 and y <= SQUARE_SIZE/2 then
+        return "natural-yumako-soil"
+    -- Fulgora terrain square (bottom, purple)
+    elseif x >= -SQUARE_SIZE/2 and x <= SQUARE_SIZE/2 and y >= PLATFORM_SIZE and y <= PLATFORM_SIZE + SQUARE_SIZE - 1 then
+        return "fulgoran-rock"
+    -- Vulcanus terrain square (left, grey)
+    elseif x >= -(PLATFORM_SIZE + SQUARE_SIZE - 1) and x <= -PLATFORM_SIZE and y >= -SQUARE_SIZE/2 and y <= SQUARE_SIZE/2 then
+        local rel_x = x + PLATFORM_SIZE + SQUARE_SIZE - 1
+        local rel_y = y + SQUARE_SIZE/2
+        if rel_x == 0 or rel_y == 0 or rel_y == SQUARE_SIZE then
+            return "lava"
+        else
+            return "volcanic-soil-light"
+        end
+    else
+        return "out-of-map"
+    end
+end
+
 function generate_lobby_terrain(surface)
     local tiles = {}
     
-    -- Main platform area with void edges
-    for x = -32, 32 do
-        for y = -32, 32 do
-            if x < PLATFORM_SIZE and x > -(PLATFORM_SIZE+1) and y < PLATFORM_SIZE and y > -(PLATFORM_SIZE+1) then
-                table.insert(tiles, {name = "space-platform-foundation", position = {x, y}})
-            else
-                table.insert(tiles, {name = "out-of-map", position = {x, y}})
-            end
+    -- Generate for 3 chunks radius (96 tiles each direction)
+    for x = -96, 96 do
+        for y = -96, 96 do
+            table.insert(tiles, {name = get_lobby_tile(x, y), position = {x, y}})
         end
     end
     
-    -- Nauvis terrain square (top, blue)
-    for x = -SQUARE_SIZE/2, SQUARE_SIZE/2 do
-        for y = -(PLATFORM_SIZE + SQUARE_SIZE - 1), -PLATFORM_SIZE do
-            table.insert(tiles, {name = "grass-1", position = {x, y}})
-        end
-    end
-    
-    -- Gleba terrain square (right, green) - natural pattern
-    local gleba_patterns = {
-        {x_range = {0, 6}, y_range = {-10, -5}, tile = "wetland-yumako"},
-        {x_range = {7, 12}, y_range = {-8, -2}, tile = "natural-yumako-soil"},
-        {x_range = {13, 19}, y_range = {-6, 0}, tile = "lowland-brown-blubber"},
-        {x_range = {0, 8}, y_range = {-4, 2}, tile = "natural-jellynut-soil"},
-        {x_range = {9, 19}, y_range = {1, 6}, tile = "midland-turquoise-bark"},
-        {x_range = {0, 12}, y_range = {3, 10}, tile = "wetland-light-green-slime"},
-        {x_range = {13, 19}, y_range = {7, 10}, tile = "lowland-olive-blubber"}
-    }
-    
-    for _, pattern in pairs(gleba_patterns) do
-        for x = PLATFORM_SIZE + pattern.x_range[1], PLATFORM_SIZE + pattern.x_range[2] do
-            for y = pattern.y_range[1], pattern.y_range[2] do
-                if x <= PLATFORM_SIZE + SQUARE_SIZE - 1 and y >= -SQUARE_SIZE/2 and y <= SQUARE_SIZE/2 then
-                    table.insert(tiles, {name = pattern.tile, position = {x, y}})
-                end
-            end
-        end
-    end
-    
-    -- Fulgora terrain square (bottom, purple)
-    for x = -SQUARE_SIZE/2, SQUARE_SIZE/2 do
-        for y = PLATFORM_SIZE, PLATFORM_SIZE + SQUARE_SIZE - 1 do
-            table.insert(tiles, {name = "fulgoran-rock", position = {x, y}})
-        end
-    end
-    
-    -- Vulcanus terrain square (left, grey) - with lava border
-    for x = -(PLATFORM_SIZE + SQUARE_SIZE - 1), -PLATFORM_SIZE do
-        for y = -SQUARE_SIZE/2, SQUARE_SIZE/2 do
-            local rel_x = x + PLATFORM_SIZE + SQUARE_SIZE - 1
-            local rel_y = y + SQUARE_SIZE/2
-            
-            -- Lava border except on east edge (connects to platform)
-            if rel_x == 0 or rel_y == 0 or rel_y == SQUARE_SIZE then
-                table.insert(tiles, {name = "lava", position = {x, y}})
-            else
-                table.insert(tiles, {name = "volcanic-soil-light", position = {x, y}})
-            end
-        end
-    end
-    
-    -- Configure surface
-    surface.daytime = 0.5
-    surface.freeze_daytime = true
     surface.set_tiles(tiles)
 end
 
--- Warptorio-style chunk generation handler for lobby persistence
 script.on_event(defines.events.on_chunk_generated, function(event)
     local surface = event.surface
     if surface.name ~= "lobby" then return end
     
-    local minx = event.area.left_top.x
-    local maxx = event.area.right_bottom.x
-    local miny = event.area.left_top.y
-    local maxy = event.area.right_bottom.y
-    
     local tiles = {}
-    for x = minx-1, maxx do
-        for y = miny-1, maxy do
-            -- Cancel zone (center platform with hazard concrete)
-            if x >= -CANCEL_AREA_SIZE/2 and x <= CANCEL_AREA_SIZE/2 and y >= -CANCEL_AREA_SIZE/2 and y <= CANCEL_AREA_SIZE/2 then
-                table.insert(tiles, {name = "refined-hazard-concrete-left", position = {x, y}})
-            -- Main platform area
-            elseif x < PLATFORM_SIZE and x > -(PLATFORM_SIZE+1) and y < PLATFORM_SIZE and y > -(PLATFORM_SIZE+1) then
-                table.insert(tiles, {name = "space-platform-foundation", position = {x, y}})
-            -- Planet terrain squares
-            elseif x >= -SQUARE_SIZE/2 and x <= SQUARE_SIZE/2 and y >= -(PLATFORM_SIZE + SQUARE_SIZE - 1) and y <= -PLATFORM_SIZE then
-                table.insert(tiles, {name = "grass-1", position = {x, y}})
-            elseif x >= PLATFORM_SIZE and x <= PLATFORM_SIZE + SQUARE_SIZE - 1 and y >= -SQUARE_SIZE/2 and y <= SQUARE_SIZE/2 then
-                -- Gleba pattern (simplified for chunk generation)
-                table.insert(tiles, {name = "natural-yumako-soil", position = {x, y}})
-            elseif x >= -SQUARE_SIZE/2 and x <= SQUARE_SIZE/2 and y >= PLATFORM_SIZE and y <= PLATFORM_SIZE + SQUARE_SIZE - 1 then
-                table.insert(tiles, {name = "fulgoran-rock", position = {x, y}})
-            elseif x >= -(PLATFORM_SIZE + SQUARE_SIZE - 1) and x <= -PLATFORM_SIZE and y >= -SQUARE_SIZE/2 and y <= SQUARE_SIZE/2 then
-                local rel_x = x + PLATFORM_SIZE + SQUARE_SIZE - 1
-                local rel_y = y + SQUARE_SIZE/2
-                if rel_x == 0 or rel_y == 0 or rel_y == SQUARE_SIZE then
-                    table.insert(tiles, {name = "lava", position = {x, y}})
-                else
-                    table.insert(tiles, {name = "volcanic-soil-light", position = {x, y}})
-                end
-            else
-                table.insert(tiles, {name = "out-of-map", position = {x, y}})
-            end
+    for x = event.area.left_top.x, event.area.right_bottom.x - 1 do
+        for y = event.area.left_top.y, event.area.right_bottom.y - 1 do
+            table.insert(tiles, {name = get_lobby_tile(x, y), position = {x, y}})
         end
     end
     
     surface.set_tiles(tiles)
-    surface.daytime = 0.5
-    surface.freeze_daytime = true
 end)
+
 
 -- Maintain lobby visibility (every 10 seconds)
 script.on_nth_tick(600, function(event)
