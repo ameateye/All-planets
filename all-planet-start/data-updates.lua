@@ -152,3 +152,6 @@ data:extend({
         }
     }
 })
+
+utils.add_prerequisites("captivity", {"planet-discovery-nauvis"})
+utils.add_prerequisites("lanet-discovery-aquilo", {"biolab"})
