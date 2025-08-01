@@ -15,23 +15,19 @@ local planet_colors = {
 }
 
 function detect_planet_area(position)
-    local platform_size = 25
-    local square_size = 20
-    local cancel_area_size = 15  -- Central cancel area
     local x, y = position.x, position.y
     
-    -- Check cancel area first (center of platform with hazard concrete)
-    if x >= -cancel_area_size/2 and x <= cancel_area_size/2 and y >= -cancel_area_size/2 and y <= cancel_area_size/2 then
+    if x >= -LOBBY_CANCEL_AREA_SIZE/2 and x <= LOBBY_CANCEL_AREA_SIZE/2 and y >= -LOBBY_CANCEL_AREA_SIZE/2 and y <= LOBBY_CANCEL_AREA_SIZE/2 then
         return "cancel"
     end
     
-    if x >= -square_size/2 and x <= square_size/2 and y >= -(platform_size + square_size - 1) and y <= -platform_size then
+    if x >= -LOBBY_SQUARE_SIZE/2 and x <= LOBBY_SQUARE_SIZE/2 and y >= -(LOBBY_PLATFORM_SIZE + LOBBY_SQUARE_SIZE - 1) and y <= -LOBBY_PLATFORM_SIZE then
         return "nauvis"
-    elseif x >= platform_size and x <= platform_size + square_size - 1 and y >= -square_size/2 and y <= square_size/2 then
+    elseif x >= LOBBY_PLATFORM_SIZE and x <= LOBBY_PLATFORM_SIZE + LOBBY_SQUARE_SIZE - 1 and y >= -LOBBY_SQUARE_SIZE/2 and y <= LOBBY_SQUARE_SIZE/2 then
         return "gleba"
-    elseif x >= -square_size/2 and x <= square_size/2 and y >= platform_size and y <= platform_size + square_size - 1 then
+    elseif x >= -LOBBY_SQUARE_SIZE/2 and x <= LOBBY_SQUARE_SIZE/2 and y >= LOBBY_PLATFORM_SIZE and y <= LOBBY_PLATFORM_SIZE + LOBBY_SQUARE_SIZE - 1 then
         return "fulgora"
-    elseif x >= -(platform_size + square_size - 1) and x <= -platform_size and y >= -square_size/2 and y <= square_size/2 then
+    elseif x >= -(LOBBY_PLATFORM_SIZE + LOBBY_SQUARE_SIZE - 1) and x <= -LOBBY_PLATFORM_SIZE and y >= -LOBBY_SQUARE_SIZE/2 and y <= LOBBY_SQUARE_SIZE/2 then
         return "vulcanus"
     end
     
