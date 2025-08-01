@@ -12,8 +12,7 @@ local utils = require("utils") --[[@as APS.utils]]
 local planet_discoveries = {
     "planet-discovery-vulcanus", 
     "planet-discovery-gleba", 
-    "planet-discovery-fulgora", 
-    "planet-discovery-nauvis"
+    "planet-discovery-fulgora"
 }
 
 -- Remove planet discovery prerequisites from ALL technologies except science packs

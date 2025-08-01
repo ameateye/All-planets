@@ -153,5 +153,6 @@ data:extend({
     }
 })
 
+-- Add proper dependencies for captivity, and require biolabs for Aquilo
 utils.add_prerequisites("captivity", {"planet-discovery-nauvis"})
-utils.add_prerequisites("lanet-discovery-aquilo", {"biolab"})
+utils.add_prerequisites("planet-discovery-aquilo", {"biolab"})
