@@ -15,7 +15,7 @@ _G.LOBBY_CANCEL_AREA_SIZE = CANCEL_AREA_SIZE
 -- ============================================================================
 
 script.on_init(function()
-    -- Skip intro and disable crashsite like Any Planet Start does
+    -- Skip intro and disable crashsite
     if remote.interfaces.freeplay then
         storage.disable_crashsite = remote.call("freeplay", "get_disable_crashsite")
         storage.skip_intro = remote.call("freeplay", "get_skip_intro")
@@ -33,18 +33,17 @@ script.on_init(function()
     storage.personal_timers = {}
     storage.clock_data = {}
     
-    -- Track Nauvis first landing (since surface clearing doesn't work for first player detection)
+    -- Track Nauvis first landing
     storage.nauvis_first_landing = false
     
-    -- Don't unlock space locations initially - will unlock them when surfaces are created
-    -- This prevents auto-creation of planet surfaces
+    -- Lock space locations to prevent auto-creation of planet surfaces
     local force = game.forces.player
     local space_locations = {"nauvis", "vulcanus", "gleba", "fulgora"}
     for _, location in pairs(space_locations) do
         force.lock_space_location(location)
     end
     
-    -- Create and setup lobby surface
+    -- Create lobby surface with controlled settings
     storage.lobby_surface = game.create_surface("lobby", {
         starting_area = "none",
         peaceful_mode = true,
@@ -61,7 +60,7 @@ script.on_init(function()
     generate_lobby_terrain(storage.lobby_surface)
     storage.lobby_generated = true
     
-    -- Clear Nauvis surface
+    -- Clear default Nauvis surface
     local nauvis = game.get_surface("nauvis")
     if nauvis then
         nauvis.clear()
@@ -70,7 +69,7 @@ end)
 
 
 -- ============================================================================
--- PLAYER SPAWN AND LOBBY MANAGEMENT
+-- PLAYER SPAWN HANDLING
 -- ============================================================================
 
 script.on_event(defines.events.on_player_created, function(event)

@@ -14,6 +14,7 @@ local planet_colors = {
     fulgora = {r = 0.5, g = 0, b = 1}      -- Purple
 }
 
+-- Detect which planet selection area player is standing in (matches lobby terrain layout)
 function detect_planet_area(position)
     local x, y = position.x, position.y
     
@@ -34,30 +35,32 @@ function detect_planet_area(position)
     return nil
 end
 
+-- Update player's planet selection and color
 function update_player_selection(player, planet)
     if not player or not planet then return end
     
     storage.player_selections[player.index] = planet
     player.color = planet_colors[planet]
     
+    -- Handle late joiners
     if storage.selection_locked then
-        -- Game has started, start personal countdown for late joiner
         player.print("Game has already started! You selected " .. planet:gsub("^%l", string.upper) .. ". Teleporting in 5 seconds...")
         start_personal_teleport_timer(player, planet)
     else
-        game.print("Player " .. player.name .. " selected " .. planet:gsub("^%l", string.upper) .. "!")
+        player.print("You selected " .. planet:gsub("^%l", string.upper) .. "!")
     end
 end
 
+-- Clear player's planet selection
 function clear_player_selection(player)
     if not player then return end
     
     local current_selection = storage.player_selections[player.index]
     if current_selection then
         storage.player_selections[player.index] = nil
-        player.color = {r = 1, g = 1, b = 1}  -- Reset to white
+        player.color = {r = 1, g = 1, b = 1}
         
-        -- Cancel personal timer if active
+        --For late joiner, cancel teleport
         if storage.personal_timers and storage.personal_timers[player.index] then
             storage.personal_timers[player.index] = nil
             player.print("Teleportation cancelled.")
@@ -69,18 +72,20 @@ function clear_player_selection(player)
     end
 end
 
+-- Start personal countdown timer for late joining player
 function start_personal_teleport_timer(player, planet)
     if not storage.personal_timers then
         storage.personal_timers = {}
     end
     
     storage.personal_timers[player.index] = {
-        end_tick = game.tick + (5 * 60), -- 5 seconds
+        end_tick = game.tick + (5 * 60),
         planet = planet,
         last_announced = nil
     }
 end
 
+-- Handle player movement in lobby for position-based planet selection
 script.on_event(defines.events.on_player_changed_position, function(event)
     local player = game.get_player(event.player_index)
     if not player or not player.surface or player.surface.name ~= "lobby" then
@@ -107,6 +112,7 @@ end)
 -- COUNTDOWN TIMER SYSTEM
 -- ============================================================================
 
+-- Start main game countdown timer
 function start_teleport_countdown()
     if storage.teleport_timer then return end
     
@@ -114,12 +120,13 @@ function start_teleport_countdown()
     game.print("Game countdown started! " .. storage.teleport_delay .. " seconds until departure.")
 end
 
+-- Determine if countdown time should be announced (every 10s, then final 5s)
 function should_announce_time(seconds_left)
     return (seconds_left % 10 == 0 and seconds_left > 0) or (seconds_left >= 1 and seconds_left <= 5)
 end
 
 script.on_event(defines.events.on_tick, function(event)
-    -- Handle main countdown timer
+    -- Handle countdown timer
     if storage.teleport_timer then
         local ticks_left = storage.teleport_timer - game.tick
         local seconds_left = math.ceil(ticks_left / 60)
@@ -179,6 +186,7 @@ end)
 -- TELEPORTATION SYSTEM
 -- ============================================================================
 
+-- Teleport all players who have selected planets to their chosen destinations
 function teleport_players_to_planets()
     for _, player in pairs(game.players) do
         local selected_planet = storage.player_selections[player.index]
@@ -196,6 +204,7 @@ local planet_messages = {
     fulgora = "Welcome to Fulgora! Mind the lightning storms!"
 }
 
+-- Teleport players to planet, handles planet creation and initial inventory
 function teleport_player_to_planet(player, planet_name)
     -- Check if this is the first player (special handling for Nauvis)
     local is_first_player = (planet_name == "nauvis") and not storage.nauvis_first_landing or (game.get_surface(planet_name) == nil)

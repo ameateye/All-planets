@@ -2,7 +2,7 @@
 -- Admin controls and clock system
 
 -- ============================================================================
--- TIME FORMATTING (Adapted from redRafe's rr-clock)
+-- TIME FORMATTING
 -- ============================================================================
 
 local SECONDS = 60
@@ -25,7 +25,7 @@ local function format_time(ticks)
 end
 
 -- ============================================================================
--- GUI SYSTEM - UNIFIED ADMIN AND CLOCK
+-- UNIFIED GUI SYSTEM
 -- ============================================================================
 
 script.on_event(defines.events.on_player_joined_game, function(event)
@@ -43,7 +43,7 @@ function create_unified_gui(player)
         player.gui.screen.aps_unified_gui.destroy()
     end
     
-    -- Create unified frame - simple structure like rr-clock
+    -- Create unified frame
     local frame = player.gui.screen.add{
         type = 'frame',
         name = 'aps_unified_gui',
@@ -51,13 +51,13 @@ function create_unified_gui(player)
         style = 'quick_bar_slot_window_frame',
     }
     
-    -- Fixed size and position like rr-clock
+    -- Fixed size and position
     frame.style.minimal_width = 220
     frame.style.minimal_height = 40
     frame.style.padding = 4
     frame.location = {10, 10}
     
-    -- Store current element for updates (rr-clock pattern)
+    -- Store current element for updates
     if not storage.gui_elements then
         storage.gui_elements = {}
     end
@@ -92,7 +92,7 @@ function create_start_button_element(frame)
 end
 
 function create_message_element(frame)
-    -- Create a flow container for centering (like rr-clock)
+    -- Create a flow container for centering
     local flow = frame.add{
         type = 'flow',
         direction = 'horizontal'
@@ -115,7 +115,7 @@ function create_countdown_element(frame)
     local ticks_left = storage.teleport_timer - game.tick
     local seconds_left = math.ceil(ticks_left / 60)
     
-    -- Create a flow container for centering (like rr-clock)
+    -- Create a flow container for centering
     local flow = frame.add{
         type = 'flow',
         direction = 'horizontal'
@@ -135,7 +135,7 @@ function create_countdown_element(frame)
 end
 
 function create_clock_element(frame)
-    -- Create a flow container for centering (like rr-clock)
+    -- Create a flow container for centering
     local flow = frame.add{
         type = 'flow',
         direction = 'horizontal'
@@ -182,7 +182,7 @@ script.on_event(defines.events.on_gui_click, function(event)
 end)
 
 
--- Simple update function like rr-clock (global for control.lua)
+-- Simple update function (global for control.lua)
 function update_unified_gui(player)
     if not (player and player.valid) then 
         return 
